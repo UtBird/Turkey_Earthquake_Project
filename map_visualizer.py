@@ -10,13 +10,12 @@ from folium.plugins import MarkerCluster, HeatMap
 
 def generate_map(city_name, lat, lon, fault_points, fault_lines=None, geojson_paths=None, all_quakes_df=None, output_file="risk_map.html"):
     """
-    Generates a focused map showing the city, its risk radius, and local earthquakes.
-    Includes Heatmap, Fault Lines, and GeoJSON layers.
+    Seçilen şehir için detaylı risk haritası oluşturuyorum.
+    Fay hatlarını, ısı haritasını ve son depremleri gösteriyorum.
     """
-    # 1. Temel Harita
-    m = folium.Map(location=[lat, lon], zoom_start=8, tiles="CartoDB dark_matter")
+    # 1. Harita Altlığı (Koyu Tema)
 
-    # 2. Hedef Şehir (Özel İkon)
+    # 2. Hedef Şehri İşaretliyorum
     folium.Marker(
         [lat, lon],
         popup=f"<div style='font-size: 14px; font-weight: bold;'>{city_name}</div>",
@@ -24,7 +23,7 @@ def generate_map(city_name, lat, lon, fault_points, fault_lines=None, geojson_pa
         icon=folium.Icon(color="red", icon="info-sign", prefix='fa')
     ).add_to(m)
 
-    # 3. Kapsama Alanı (150km Yarıçap)
+    # 3. 150km Risk Alanını Çiziyorum
     folium.Circle(
         location=[lat, lon],
         radius=150000, # Metre cinsinden
@@ -34,7 +33,7 @@ def generate_map(city_name, lat, lon, fault_points, fault_lines=None, geojson_pa
         popup="150km Risk Analiz Yarıçapı"
     ).add_to(m)
 
-    # 4. Basit Fay Hatları Katmanı (Manuel Çizim)
+    # 4. Ana Fay Hatlarını Gösteriyorum
     if fault_lines:
         fault_group = folium.FeatureGroup(name="Ana Fay Hatları (Basit)")
         for line in fault_lines:
@@ -47,7 +46,7 @@ def generate_map(city_name, lat, lon, fault_points, fault_lines=None, geojson_pa
             ).add_to(fault_group)
         fault_group.add_to(m)
 
-    # 5. Detaylı GeoJSON Fay Hatları
+    # 5. Detaylı GeoJSON Fay Verilerini Ekliyorum
     if geojson_paths:
         for path in geojson_paths:
             if os.path.exists(path):
@@ -67,7 +66,7 @@ def generate_map(city_name, lat, lon, fault_points, fault_lines=None, geojson_pa
                     print(f"GeoJSON yüklenemedi ({path}): {e}")
 
     if all_quakes_df is not None and not all_quakes_df.empty:
-        # 6. Isı Haritası (Heatmap) Katmanı
+        # 6. Deprem Yoğunluk Haritası (Heatmap)
         heat_data = all_quakes_df[['latitude', 'longitude', 'mag']].values.tolist()
         HeatMap(
             heat_data,
@@ -76,14 +75,14 @@ def generate_map(city_name, lat, lon, fault_points, fault_lines=None, geojson_pa
             max_zoom=10,
         ).add_to(m)
 
-        # 7. Geçmiş Depremler (Kümeleme)
+        # 7. Geçmiş Depremleri Grupluyorum
         marker_cluster = MarkerCluster(name="Bölgesel Depremler").add_to(m)
         
-        # Performans için filtre
+        # Harita kasmaması için sadece 3.0 üzeri depremleri gösteriyorum
         significant_quakes = all_quakes_df[all_quakes_df['mag'] >= 3.0]
         
         for _, row in significant_quakes.iterrows():
-            # Renk belirle
+            # Büyüklüğe göre renk veriyorum
             mag = row['mag']
             color = "green"
             if mag >= 4.0: color = "orange"
@@ -100,12 +99,12 @@ def generate_map(city_name, lat, lon, fault_points, fault_lines=None, geojson_pa
                 fill_opacity=0.7
             ).add_to(marker_cluster)
 
-    # Katman Kontrolü
+    # Katman Kontrol Menüsü
     folium.LayerControl(collapsed=False).add_to(m)
 
-    # Haritayı kaydet
+    # Haritayı kaydedip açıyorum
     m.save(output_file)
     
-    # Tarayıcıda aç
+
     webbrowser.open("file://" + os.path.realpath(output_file))
     return os.path.realpath(output_file)

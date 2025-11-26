@@ -19,14 +19,15 @@ except ImportError:
     Nominatim = None
 
 
-# Detaylı Fay Hatları (Yaklaşık Koordinatlar)
+# Türkiye'deki önemli fay hatlarının yaklaşık koordinatları
+# Bu veriler risk hesaplamasında kullanılıyor
 FAULT_LINES = [
-    # Kuzey Anadolu Fayı (NAF) - Segmentler halinde
+    # Kuzey Anadolu Fayı (NAF)
     [
         (40.4, 26.5), (40.6, 27.5), (40.8, 28.5), (40.9, 29.5), # Marmara
         (40.8, 30.5), (40.8, 31.5), (40.9, 32.5), (41.0, 33.5), # Batı Karadeniz
         (40.8, 34.5), (40.7, 35.5), (40.6, 36.5), (40.3, 37.5), # Orta Anadolu
-        (40.0, 38.5), (39.8, 39.5), (39.7, 40.5)  # Doğuya doğru
+        (40.0, 38.5), (39.8, 39.5), (39.7, 40.5)  # Doğu Kesimi
     ],
     # Doğu Anadolu Fayı (EAF)
     [
@@ -34,14 +35,14 @@ FAULT_LINES = [
         (37.8, 37.5), (38.0, 38.0), (38.3, 38.8), (38.5, 39.5), # Malatya - Elazığ
         (38.8, 40.5), (39.0, 41.0) # Bingöl
     ],
-    # Batı Anadolu Fay Zonları (Ege Grabenleri)
+    # Batı Anadolu (Ege) Fayları
     [(39.5, 26.0), (39.5, 27.0), (39.5, 28.0)], # Edremit
     [(38.5, 26.5), (38.5, 27.5), (38.5, 28.5)], # İzmir
     [(37.8, 27.0), (37.8, 28.0), (37.8, 29.0)], # Aydın
     [(37.2, 27.5), (37.2, 28.5), (37.2, 29.5)], # Muğla
 ]
 
-# Risk hesaplaması için tüm noktaları tek bir listede topla
+# Hesaplamaları hızlandırmak için tüm noktaları tek listeye alıyorum
 FAULT_POINTS = [point for line in FAULT_LINES for point in line]
 
 RISK_FEATURE_COLUMNS = [
@@ -419,7 +420,7 @@ class EarthquakeRiskEngine:
                 raise RuntimeError(f"Şehir bulunamadı: {city_name}")
             city_lat, city_lon = loc.latitude, loc.longitude
 
-        # Koordinatları sakla (Harita için)
+        # Harita gösterimi için koordinatları hafızada tutuyorum
         self.last_lat = city_lat
         self.last_lon = city_lon
 
@@ -469,7 +470,7 @@ class App:
         self.engine = EarthquakeRiskEngine()
         self.status_var = tk.StringVar(value="Hazır")
 
-        # Canlı veri güncellemesi
+        # Uygulama açılırken verileri güncellemeyi deniyorum
         self._update_data_on_startup()
 
         self._build_layout()
@@ -505,7 +506,7 @@ class App:
             )
             logo_label.pack(padx=20, pady=(20, 10))
             
-            # Butonlar
+            # Menü Butonları
             self.camera_btn = ctk.CTkButton(
                 self.sidebar,
                 text="📷 Kamera Tespiti",
@@ -538,7 +539,7 @@ class App:
             )
             self.map_btn.pack(padx=20, pady=10, fill="x")
             
-            # Sağ Panel (İçerik)
+            # Sağ Taraf (Sonuç Ekranı)
             self.content_frame = ctk.CTkFrame(self.main_frame, corner_radius=0, fg_color="transparent")
             self.content_frame.pack(side="right", fill="both", expand=True)
             
@@ -571,7 +572,7 @@ class App:
             self.status_label.pack(fill="x", padx=20, pady=10)
 
         else:
-            # Fallback to standard tkinter if customtkinter is missing
+            # CustomTkinter yoksa standart arayüze dönüyorum
             header = tk.Label(
                 self.root,
                 text="Şehir Bazlı Deprem Riski ve Kamera Tespiti",
@@ -710,7 +711,7 @@ class App:
                 result = self.engine.predict_city_risk(city)
                 self._log(result)
                 
-                # Şehre ait depremleri filtrele (150 km yarıçap)
+                # Şehre yakın depremleri (150km) filtreleyip haritaya hazırlıyorum
                 full_df = self.engine.df_full
                 dists = haversine(
                     self.engine.last_lat, 
@@ -720,7 +721,7 @@ class App:
                 )
                 city_quakes = full_df[dists <= 150.0].copy()
 
-                # Harita butonunu aktif et ve şehir bilgisini sakla
+                # Harita butonunu aktif ediyorum
                 self.last_city_data = {
                     "name": city,
                     "lat": self.engine.last_lat,
@@ -749,7 +750,7 @@ class App:
             from map_visualizer import generate_map
             data = self.last_city_data
             # df'i gönderiyoruz
-            # GeoJSON dosyalarının yolları
+            # GeoJSON dosyalarını haritaya eklemek için yollarını belirtiyorum
             geojson_files = [
                 os.path.join("map", "gem_active_faults.geojson"),
                 os.path.join("map", "gem_active_faults_harmonized.geojson")

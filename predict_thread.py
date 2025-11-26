@@ -43,21 +43,13 @@ def draw_results(frame, results, class_names, window_name):
     cv2.imshow(window_name, frame)
 
 def main():
-    # Model yolları
-    model1_path = "catlak.pt"
-    model2_path = "bina.pt"
+    # Eğitilmiş modellerimin yollarını belirtiyorum
 
-    # Modelleri yükle
-    model1 = YOLO(model1_path)
-    model2 = YOLO(model2_path)
+    # Modelleri yüklüyorum
 
-    # Sınıf isimlerini al
-    class_names1 = model1.names
-    class_names2 = model2.names
+    # Sınıf isimlerini alıyorum
 
-    # Video yakalama başlat
-    video_thread = VideoCaptureThread(0)
-    video_thread.start()
+    # Kamerayı başlatıyorum
 
     window1 = "catlak Tespiti"
     window2 = "Bina durumu"
@@ -73,18 +65,16 @@ def main():
             if frame is None:
                 continue
 
-            # Tahmin sonuçlarını tutacak yapı
-            results1 = [None]
-            results2 = [None]
+            # Sonuçları saklamak için liste kullanıyorum (referans ile geçebilmek için)
 
-            # Model tahmin fonksiyonları
+            # Modelleri ayrı fonksiyonlarda çalıştırıyorum
             def run_model1():
                 results1[0] = model1.predict(source=frame, conf=0.6, verbose=False)[0]
 
             def run_model2():
                 results2[0] = model2.predict(source=frame, conf=0.4, verbose=False)[0]
 
-            # Thread'leri başlat
+            # Performans için thread kullanıyorum (aynı anda tahmin)
             t1 = threading.Thread(target=run_model1)
             t2 = threading.Thread(target=run_model2)
             t1.start()
@@ -92,11 +82,11 @@ def main():
             t1.join()
             t2.join()
 
-            # Sonuçları çiz
+            # Sonuçları ekrana çiziyorum
             draw_results(frame.copy(), results1[0], class_names1, window1)
             draw_results(frame.copy(), results2[0], class_names2, window2)
 
-            # Çıkmak için 'q' tuşuna bas
+            # 'q' tuşu ile çıkış
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
     finally:

@@ -9,24 +9,20 @@ API_URL = "https://api.orhanaydogdu.com.tr/deprem/kandilli/live"
 
 def fetch_and_update_data():
     """
-    Kandilli API'den son depremleri çeker ve assets/query.csv dosyasına ekler.
-    Sadece yeni depremleri ekler (tarih ve büyüklük kontrolü ile).
+    Kandilli API'den son depremleri çekip CSV dosyama ekliyorum.
+    Sadece yeni olanları kaydediyorum.
     """
     print("Canlı veri kontrol ediliyor...")
     
     try:
-        # 1. Mevcut CSV'yi Oku
+        # 1. Mevcut CSV dosyasını okuyorum
         if os.path.exists(CSV_PATH):
             try:
                 df_existing = pd.read_csv(CSV_PATH)
-                # Tarih formatını datetime objesine çevir (UTC olarak)
-                df_existing['time'] = pd.to_datetime(df_existing['time'], errors='coerce')
-                # NaT olanları temizle
+                # Tarihleri düzeltiyorum
                 df_existing = df_existing.dropna(subset=['time'])
                 
-                # Eğer timezone bilgisi yoksa UTC varsay
-                if df_existing['time'].dt.tz is None:
-                    df_existing['time'] = df_existing['time'].dt.tz_localize('UTC')
+                # Zaman dilimi yoksa UTC yapıyorum
                 else:
                     df_existing['time'] = df_existing['time'].dt.tz_convert('UTC')
                     
@@ -39,7 +35,7 @@ def fetch_and_update_data():
                 "time", "latitude", "longitude", "depth", "mag", "place", "type"
             ])
 
-        # 2. API'den Veri Çek
+        # 2. API'den güncel verileri çekiyorum
         response = requests.get(API_URL, timeout=10)
         if response.status_code != 200:
             print(f"API Hatası: {response.status_code}")
@@ -53,7 +49,7 @@ def fetch_and_update_data():
         earthquakes = data["result"]
         new_records = []
         
-        # En son kaydedilen deprem zamanını bul (eğer varsa)
+        # En son hangi tarihte kaldığımı buluyorum
         if not df_existing.empty:
             last_recorded_time = df_existing['time'].max()
         else:
@@ -63,8 +59,7 @@ def fetch_and_update_data():
 
         count = 0
         for eq in earthquakes:
-            # API Tarih formatı: "2024.11.22 14:15:00" -> ISO'ya çevirmemiz lazım
-            # Genelde format: YYYY.MM.DD HH:MM:SS
+            # API'den gelen tarih formatını düzeltiyorum (YYYY.MM.DD HH:MM:SS)
             date_str = eq.get("date_time")
             if not date_str:
                 continue
@@ -73,13 +68,7 @@ def fetch_and_update_data():
                 # "." ları "-" yapıp parse edelim
                 # Örnek format: 2024.11.22 14:15:00
                 formatted_date_str = date_str.replace(".", "-")
-                # Bu tarih Türkiye saati (Local) kabul ediyoruz.
-                # Türkiye saati UTC+3
-                eq_time_naive = pd.to_datetime(formatted_date_str)
-                # Localize to Turkey time (Fixed offset +0300 for simplicity or use pytz if available, 
-                # but let's assume +0300 for modern TRT)
-                # Using pd.Timedelta for manual adjustment to UTC if timezone lib is issue, 
-                # but pandas usually handles it. Let's try explicit offset.
+                # Türkiye saati (UTC+3) olarak ayarlayıp UTC'ye çeviriyorum
                 eq_time = eq_time_naive.tz_localize('Etc/GMT-3') # GMT-3 is UTC+3
                 eq_time_utc = eq_time.tz_convert('UTC')
                 
@@ -87,7 +76,7 @@ def fetch_and_update_data():
                 # print(f"Tarih parse hatası: {e}")
                 continue
 
-            # Eğer bu deprem son kaydedilenden daha yeniyse listeye al
+            # Eğer bu deprem yeni ise listeye ekliyorum
             if eq_time_utc > last_recorded_time:
                 # CSV formatına uygun kayıt oluştur
                 
@@ -100,7 +89,7 @@ def fetch_and_update_data():
                     "magType": "ml", # Varsayılan
                     "place": eq.get("title"),
                     "type": "earthquake",
-                    "status": "automatic" # API'den gelenler genelde otomatiktir
+                    "status": "automatic"
                 }
                 new_records.append(record)
                 count += 1
@@ -109,28 +98,17 @@ def fetch_and_update_data():
             print("Yeni deprem verisi yok.")
             return "Veriler güncel."
 
-        # 3. Yeni Kayıtları Ekle
+        # 3. Yeni verileri eskilerle birleştiriyorum
         df_new = pd.DataFrame(new_records)
         
-        # Mevcut sütun yapısına uydur (Eksik sütunları NaN yap)
+        # Sütunları eşliyorum
         df_updated = pd.concat([df_existing, df_new], ignore_index=True)
         
-        # Tarihe göre sırala (Yeniden eskiye)
+        # Yeniden eskiye sıralıyorum
         df_updated = df_updated.sort_values("time", ascending=False)
 
-        # 4. Dosyayı Kaydet
-        # Tarih formatını ISO 8601'e geri çevir (CSV uyumu için)
-        # Orijinal CSV formatı: 2024-10-04T05:57:19.724Z
-        # Pandas to_csv datetime'ı varsayılan olarak ISO formatında yazar ama Z eklemez.
-        # Formatı manuel ayarlayalım:
-        
-        # UTC timezone bilgisini düşürüp string formatlayalım ki CSV temiz olsun
-        # Ancak okurken tekrar UTC kabul edeceğiz.
-        
-        # df_updated['time'] datetime64[ns, UTC] tipinde.
-        # Bunu string'e çevirirken formatlayalım.
-        
-        # Geçici bir kolon yapıp formatlayalım
+        # 4. Dosyayı kaydediyorum
+        # Tarih formatını CSV için standart hale getiriyorum
         df_to_save = df_updated.copy()
         df_to_save['time'] = df_to_save['time'].dt.strftime('%Y-%m-%dT%H:%M:%S.000Z')
         
