@@ -1,4 +1,6 @@
 time,latitude,longitude,depth,mag,magType,nst,gap,dmin,rms,net,id,updated,place,type,horizontalError,depthError,magError,magNst,status,locationSource,magSource
+2025-12-02T15:58:42.000Z,39.0925,28.244,12.8,1.4,ml,,,,,,,,CICEKLI-GORDES (MANISA),earthquake,,,,,automatic,,
+2025-12-02T15:56:12.000Z,39.1708,28.1383,8.7,1.3,ml,,,,,,,,SINANDEDE-SINDIRGI (BALIKESIR),earthquake,,,,,automatic,,
 2025-12-02T15:28:50.000Z,38.9082,26.0798,15.3,2.0,ml,,,,,,,,MIDILLI ADASI GUNEYI (EGE DENIZI),earthquake,,,,,automatic,,
 2025-12-02T15:23:17.000Z,40.8203,28.0873,11.5,1.8,ml,,,,,,,,MARMARA DENIZI,earthquake,,,,,automatic,,
 2025-12-02T15:19:38.000Z,39.209,40.1005,5.0,1.9,ml,,,,,,,,BATIAYAZ-YAYLADERE (BINGOL),earthquake,,,,,automatic,,

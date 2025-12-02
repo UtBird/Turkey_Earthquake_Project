@@ -16,7 +16,7 @@ from map_visualizer import generate_map
 class App:
     def __init__(self, root):
         self.root = root
-        self.root.title("Teknosel - Deprem Risk ve Tespit Paneli")
+        self.root.title("Deprem Risk ve Tespit Paneli")
         self.root.geometry("900x600")
         
         if ctk:
@@ -59,7 +59,7 @@ class App:
             
             logo_label = ctk.CTkLabel(
                 self.sidebar, 
-                text="TEKNOSEL\nDeprem Paneli", 
+                text="Deprem Paneli", 
                 font=ctk.CTkFont(size=20, weight="bold")
             )
             logo_label.pack(padx=20, pady=(20, 10))

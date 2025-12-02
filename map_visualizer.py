@@ -1,17 +1,24 @@
 import webbrowser
 import os
 import json
+import webbrowser
+import os
+import json
 import folium
 from folium.plugins import MarkerCluster, HeatMap
 
 def generate_map(city_name, lat, lon, fault_points, fault_lines=None, geojson_paths=None, all_quakes_df=None, output_file="risk_map.html"):
     """
     Generates a focused map showing the city, its risk radius, and local earthquakes.
-    Includes Heatmap, Fault Lines, and GeoJSON layers.
+    Includes Heatmap, Fault Lines, and GeoJSON layers with improved aesthetics.
     """
-    # 1. Temel Harita
-    m = folium.Map(location=[lat, lon], zoom_start=8, tiles="CartoDB dark_matter")
-
+    # 1. Temel Harita ve Katmanlar
+    m = folium.Map(location=[lat, lon], zoom_start=8, tiles=None)
+    
+    # Farklı harita altlıkları ekle
+    folium.TileLayer('CartoDB dark_matter', name='Koyu Mod (Varsayılan)').add_to(m)
+    folium.TileLayer('OpenStreetMap', name='Aydınlık Mod').add_to(m)
+    
     # 2. Hedef Şehir (Özel İkon)
     folium.Marker(
         [lat, lon],
@@ -20,30 +27,20 @@ def generate_map(city_name, lat, lon, fault_points, fault_lines=None, geojson_pa
         icon=folium.Icon(color="red", icon="info-sign", prefix='fa')
     ).add_to(m)
 
-    # 3. Kapsama Alanı (150km Yarıçap) - İPTAL EDİLDİ (Kullanıcı isteği)
-    # folium.Circle(
-    #     location=[lat, lon],
-    #     radius=150000, # Metre cinsinden
-    #     color="#3388ff",
-    #     fill=True,
-    #     fill_opacity=0.1,
-    #     popup="150km Risk Analiz Yarıçapı"
-    # ).add_to(m)
-
-    # 4. Basit Fay Hatları Katmanı (Manuel Çizim)
+    # 3. Basit Fay Hatları Katmanı (Manuel Çizim)
     if fault_lines:
-        fault_group = folium.FeatureGroup(name="Ana Fay Hatları (Basit)")
+        fault_group = folium.FeatureGroup(name="Ana Fay Hatları (Basit)", show=False)
         for line in fault_lines:
             folium.PolyLine(
                 line,
-                color="red",
-                weight=3,
-                opacity=0.7,
+                color="#ff5722", # Daha canlı bir turuncu
+                weight=2,
+                opacity=0.6,
                 tooltip="Ana Fay Hattı"
             ).add_to(fault_group)
         fault_group.add_to(m)
 
-    # 5. Detaylı GeoJSON Fay Hatları
+    # 4. Detaylı GeoJSON Fay Hatları
     if geojson_paths:
         for path in geojson_paths:
             if os.path.exists(path):
@@ -56,11 +53,11 @@ def generate_map(city_name, lat, lon, fault_points, fault_lines=None, geojson_pa
                     folium.GeoJson(
                         geo_data,
                         name=f"Detaylı Faylar: {name}",
-                        zoom_on_click=False, # Tıklayınca zoom yapmayı/kare içine almayı engelle
+                        zoom_on_click=False,
                         style_function=lambda x: {
-                            'color': '#ff9900', 
-                            'weight': 1, 
-                            'opacity': 0.6
+                            'color': '#ff9800', 
+                            'weight': 1.5, 
+                            'opacity': 0.5
                         },
                         tooltip=folium.GeoJsonTooltip(fields=['name'], aliases=['Fay Adı:'], localize=True) if 'name' in str(geo_data).lower() else None
                     ).add_to(m)
@@ -68,20 +65,22 @@ def generate_map(city_name, lat, lon, fault_points, fault_lines=None, geojson_pa
                     print(f"GeoJSON yüklenemedi ({path}): {e}")
 
     if all_quakes_df is not None and not all_quakes_df.empty:
-        # 6. Isı Haritası (Heatmap) Katmanı
+        # 5. Isı Haritası (Heatmap) Katmanı
         heat_data = all_quakes_df[['latitude', 'longitude', 'mag']].values.tolist()
         HeatMap(
             heat_data,
             name="Deprem Yoğunluğu (Isı Haritası)",
             radius=15,
             max_zoom=10,
+            min_opacity=0.4,
+            gradient={0.4: 'blue', 0.65: 'lime', 1: 'red'}
         ).add_to(m)
 
-        # 7. Geçmiş Depremler (Tekil - Etki Alanı)
-        # Kümeleme yerine FeatureGroup kullanıyoruz
-        quake_group = folium.FeatureGroup(name="Bölgesel Depremler (Etki Alanı)")
+        # 6. Geçmiş Depremler (Marker Cluster ile Gruplanmış)
+        # MarkerCluster kullanarak kalabalığı önlüyoruz
+        quake_cluster = MarkerCluster(name="Bölgesel Depremler (Kümelenmiş)").add_to(m)
         
-        # Performans için filtre
+        # Sadece 3.0 ve üzeri depremleri gösterelim (daha temiz görüntü için)
         significant_quakes = all_quakes_df[all_quakes_df['mag'] >= 3.0]
         
         for _, row in significant_quakes.iterrows():
@@ -93,7 +92,7 @@ def generate_map(city_name, lat, lon, fault_points, fault_lines=None, geojson_pa
             if mag >= 5.0: color = "red"
             if mag >= 6.0: color = "darkred"
             
-            # Etki alanı yarıçapı (Heuristik: 10^(0.5*M - 1) km)
+            # Etki alanı yarıçapı
             impact_radius_km = int(10**(0.5 * mag - 1))
             impact_radius_m = impact_radius_km * 1000
             
@@ -108,17 +107,15 @@ def generate_map(city_name, lat, lon, fault_points, fault_lines=None, geojson_pa
             </div>
             """
 
-            # 1. Merkez Noktası
             folium.CircleMarker(
                 location=[row['latitude'], row['longitude']],
-                radius=4,
+                radius=5,
                 color=color,
                 fill=True,
-                fill_opacity=0.8,
+                fill_color=color,
+                fill_opacity=0.7,
                 popup=folium.Popup(popup_html, max_width=250)
-            ).add_to(quake_group)
-
-        quake_group.add_to(m)
+            ).add_to(quake_cluster)
 
     # Katman Kontrolü
     folium.LayerControl(collapsed=False).add_to(m)
@@ -129,41 +126,35 @@ def generate_map(city_name, lat, lon, fault_points, fault_lines=None, geojson_pa
     <script>
     var currentImpactCircle = null;
     
-    // Harita yüklendiğinde çalışacak
     window.addEventListener('load', function() {{
         var map = {map_id};
         
         map.on('popupopen', function(e) {{
-            // Eğer önceki bir çember varsa kaldır
             if (currentImpactCircle) {{
                 map.removeLayer(currentImpactCircle);
                 currentImpactCircle = null;
             }}
             
-            // Popup içeriğinden yarıçapı al
             var content = e.popup.getContent();
-            // HTML string olabilir, element olabilir. String ise regex ile al.
             if (typeof content === 'string') {{
                 var match = content.match(/id="impact_radius_m" hidden>(\\d+)</);
                 if (match) {{
                     var radius = parseInt(match[1]);
                     var latlng = e.popup.getLatLng();
                     
-                    // Yeni çemberi çiz
                     currentImpactCircle = L.circle(latlng, {{
                         radius: radius,
                         color: 'red',
                         weight: 1,
                         fillColor: 'red',
-                        fillOpacity: 0.2,
-                        interactive: false // Tıklamaları engellemesin
+                        fillOpacity: 0.1,
+                        interactive: false
                     }}).addTo(map);
                 }}
             }}
         }});
 
         map.on('popupclose', function(e) {{
-            // Popup kapanınca çemberi kaldır
             if (currentImpactCircle) {{
                 map.removeLayer(currentImpactCircle);
                 currentImpactCircle = null;
