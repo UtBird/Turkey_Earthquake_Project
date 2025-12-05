@@ -1,4 +1,5 @@
 import os
+import platform
 import threading
 import tkinter as tk
 from tkinter import messagebox, simpledialog
@@ -22,6 +23,11 @@ class App:
         if ctk:
             ctk.set_appearance_mode("Dark")
             ctk.set_default_color_theme("dark-blue")
+            
+            # Linux scaling fix
+            if platform.system() == "Linux":
+                ctk.set_widget_scaling(1.0)
+                ctk.set_window_scaling(1.0)
             self.root.configure(bg="#1a1a1a")
         else:
             self.root.configure(bg="#0b1c2c")
@@ -60,40 +66,46 @@ class App:
             logo_label = ctk.CTkLabel(
                 self.sidebar, 
                 text="Deprem Paneli", 
-                font=ctk.CTkFont(size=20, weight="bold")
+                font=ctk.CTkFont(family="Ubuntu", size=24, weight="bold")
             )
             logo_label.pack(padx=20, pady=(20, 10))
             
             # Butonlar
             self.camera_btn = ctk.CTkButton(
                 self.sidebar,
-                text="📷 Kamera Tespiti",
+                text="Kamera Tespiti",
                 command=self._on_camera,
                 height=40,
+                font=("Ubuntu", 16, "bold"),
                 fg_color="#1e88e5",
-                hover_color="#1565c0"
+                hover_color="#1565c0",
+                corner_radius=0
             )
             self.camera_btn.pack(padx=20, pady=10, fill="x")
 
             self.risk_btn = ctk.CTkButton(
                 self.sidebar,
-                text="🌍 Risk Hesapla",
+                text="Risk Hesapla",
                 command=self._on_risk,
                 height=40,
+                font=("Ubuntu", 16, "bold"),
                 fg_color="#d81b60",
-                hover_color="#ad1457"
+                hover_color="#ad1457",
+                corner_radius=0
             )
             self.risk_btn.pack(padx=20, pady=10, fill="x")
 
             self.map_btn = ctk.CTkButton(
                 self.sidebar,
-                text="🗺️ Harita",
+                text="Harita",
                 command=self._on_map,
                 height=40,
+                font=("Ubuntu", 16, "bold"),
                 fg_color="#fbc02d",
                 text_color="black",
                 hover_color="#f9a825",
-                state="disabled"
+                state="disabled",
+                corner_radius=0
             )
             self.map_btn.pack(padx=20, pady=10, fill="x")
             
@@ -105,7 +117,7 @@ class App:
             header = ctk.CTkLabel(
                 self.content_frame,
                 text="Analiz Sonuçları",
-                font=ctk.CTkFont(size=18, weight="bold"),
+                font=ctk.CTkFont(family="Ubuntu", size=20, weight="bold"),
                 anchor="w"
             )
             header.pack(padx=20, pady=(20, 10), fill="x")
@@ -114,7 +126,7 @@ class App:
             self.output = ctk.CTkTextbox(
                 self.content_frame,
                 width=400,
-                font=ctk.CTkFont(family="Consolas", size=12)
+                font=ctk.CTkFont(family="Ubuntu Mono", size=13)
             )
             self.output.pack(fill="both", expand=True, padx=20, pady=10)
             self.output.insert("end", "Paneli kullanmak için sol menüden işlem seçin.\n")

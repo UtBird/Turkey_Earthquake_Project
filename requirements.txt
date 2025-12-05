@@ -1,0 +1,10 @@
+opencv-python
+ultralytics
+requests
+folium
+numpy
+pandas
+scikit-learn
+catboost
+geopy
+customtkinter
