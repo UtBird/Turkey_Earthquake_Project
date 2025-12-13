@@ -1,0 +1,104 @@
+digraph G {
+    // A4 Size Optimization
+    rankdir=TB; // Top to Bottom
+    size="8.3,11.7!"; // Force fit to A4 (Inches)
+    ratio=fill; // Try to fill the space
+    splines=ortho;
+    nodesep=0.4; // Reduced spacing
+    ranksep=0.5; // Reduced spacing
+    fontname="Arial";
+    fontsize=12;
+
+    node [shape=box, style="filled,rounded", fontname="Arial", fontsize=10, margin="0.1,0.05", height=0.4];
+    edge [fontname="Arial", fontsize=8, color="#555555", arrowsize=0.7];
+
+    // Define styles
+    start [shape=ellipse, fillcolor="#2ecc71", fontcolor="white"];
+    decision [shape=diamond, fillcolor="#f1c40f", style="filled", height=0.6];
+    process [fillcolor="#3498db", fontcolor="white"];
+    storage [shape=cylinder, fillcolor="#9b59b6", fontcolor="white", width=0.8];
+    external [shape=component, fillcolor="#e74c3c", fontcolor="white"];
+    
+    // Main Entry
+    Start [shape=ellipse, fillcolor="#2ecc71", fontcolor="white", label="Start\n(main.py)"];
+    
+    // UI Group (Simplified)
+    subgraph cluster_UI {
+        label="Application Core";
+        style=dashed; color="#95a5a6";
+        
+        AppInit [label="Init GUI\n(gui_app.py)", fillcolor="#3498db", fontcolor="white"];
+        UI_Wait [shape=ellipse, style=filled, fillcolor="#ecf0f1", label="User Wait", fontcolor="black"];
+        
+        Start -> AppInit;
+        AppInit -> UI_Wait;
+    }
+
+    // Parallel Processes (Use 'rank=same' to force horizontal alignment where possible)
+    
+    // Data Manager
+    subgraph cluster_Data {
+        label="Data Update";
+        style=solid; color="#bdc3c7";
+        
+        ThreadUpdate [label="Bg Thread: Update", fillcolor="#3498db", fontcolor="white"];
+        FetchData [label="Fetch & Check", fillcolor="#3498db", fontcolor="white"];
+        API [label="Kandilli API", shape=component, fillcolor="#e74c3c", fontcolor="white"];
+        CSV [label="query.csv", shape=cylinder, fillcolor="#9b59b6", fontcolor="white"];
+        
+        AppInit -> ThreadUpdate [style="dashed", label="Auto-Start"];
+        ThreadUpdate -> FetchData;
+        FetchData -> API;
+        FetchData -> CSV [label="Save"];
+    }
+
+    // Risk Engine
+    subgraph cluster_Risk {
+        label="Risk Analysis";
+        style=solid; color="#bdc3c7";
+        
+        BtnRisk [label="Action: Risk Calc", fillcolor="#3498db", fontcolor="white"];
+        RiskThread [label="Thread: Predict", fillcolor="#3498db", fontcolor="white"];
+        GeoEngine [label="Geocode & Engine", fillcolor="#3498db", fontcolor="white"];
+        Model [label="CatBoost Model", shape=component, fillcolor="#e74c3c", fontcolor="white"];
+        Result [label="Risk Score", shape=note, fillcolor="#f1c40f"];
+
+        UI_Wait -> BtnRisk;
+        BtnRisk -> RiskThread;
+        RiskThread -> GeoEngine;
+        GeoEngine -> CSV [label="Read"];
+        GeoEngine -> Model;
+        GeoEngine -> Result;
+    }
+
+    // Visualization
+    subgraph cluster_Map {
+        label="Mapping";
+        style=solid; color="#bdc3c7";
+
+        BtnMap [label="Action: Map", fillcolor="#3498db", fontcolor="white"];
+        GenMap [label="Gen. Folium Map", fillcolor="#3498db", fontcolor="white"];
+        MapHTML [label="risk_map.html", shape=cylinder, fillcolor="#9b59b6", fontcolor="white"];
+        Browser [label="Web Browser", shape=component, fillcolor="#e74c3c", fontcolor="white"];
+
+        UI_Wait -> BtnMap;
+        Result -> BtnMap [style="dotted", label="Enable"];
+        BtnMap -> GenMap;
+        GenMap -> MapHTML;
+        MapHTML -> Browser;
+    }
+
+    // Camera
+    subgraph cluster_Cam {
+        label="Camera AI";
+        style=solid; color="#bdc3c7";
+
+        BtnCam [label="Action: Camera", fillcolor="#3498db", fontcolor="white"];
+        YOLO [label="Load YOLO", shape=component, fillcolor="#e74c3c", fontcolor="white"];
+        Detect [label="Detect Loop", fillcolor="#3498db", fontcolor="white"];
+
+        UI_Wait -> BtnCam;
+        BtnCam -> YOLO;
+        YOLO -> Detect;
+    }
+}

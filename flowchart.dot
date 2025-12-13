@@ -1,0 +1,128 @@
+digraph G {
+    rankdir=TB;
+    fontname="Helvetica";
+    fontsize=14;
+    splines=ortho;
+    nodesep=0.6;
+    ranksep=0.8;
+
+    node [shape=box, style="filled,rounded", fontname="Helvetica", fontsize=12, margin=0.2];
+    edge [fontname="Helvetica", fontsize=10, color="#555555"];
+
+    // Define styles
+    start [shape=ellipse, fillcolor="#2ecc71", fontcolor="white", label="Start / Main"];
+    decision [shape=diamond, fillcolor="#f1c40f", style="filled", label="Decision"];
+    process [fillcolor="#3498db", fontcolor="white"];
+    storage [shape=cylinder, fillcolor="#9b59b6", fontcolor="white"];
+    external [shape=component, fillcolor="#e74c3c", fontcolor="white"];
+    object [shape=note, fillcolor="#95a5a6", fontcolor="black"];
+
+    // 1. Startup
+    subgraph cluster_0 {
+        label="Startup Phase";
+        style=dashed;
+        color="#bdc3c7";
+        
+        Start [shape=ellipse, fillcolor="#2ecc71", fontcolor="white", label="Start (main.py)"];
+        CheckCTK [shape=diamond, fillcolor="#f1c40f", label="Has CustomTkinter?", height=1];
+        InitCTK [label="Init CustomTkinter", fillcolor="#3498db", fontcolor="white"];
+        InitTK [label="Init Standard Tkinter", fillcolor="#3498db", fontcolor="white"];
+        AppInit [label="Initialize App (gui_app.py)", fillcolor="#3498db", fontcolor="white"];
+        UI_Wait [shape=ellipse, fillcolor="#2ecc71", fontcolor="white", label="Waiting User Action"];
+        
+        Start -> CheckCTK;
+        CheckCTK -> InitCTK [label="Yes"];
+        CheckCTK -> InitTK [label="No"];
+        InitCTK -> AppInit;
+        InitTK -> AppInit;
+        AppInit -> UI_Wait;
+    }
+
+    // 2. Data Manager
+    subgraph cluster_1 {
+        label="Data Management (Background)";
+        style=dashed;
+        color="#bdc3c7";
+
+        ThreadData [label="Thread: _update_data_on_startup", fillcolor="#3498db", fontcolor="white"];
+        FetchData [label="fetch_and_update_data", fillcolor="#3498db", fontcolor="white"];
+        ReadCSV [label="Read query.csv", fillcolor="#3498db", fontcolor="white"];
+        API_Call [label="GET Kandilli API", shape=component, fillcolor="#e74c3c", fontcolor="white"];
+        CheckNew [shape=diamond, fillcolor="#f1c40f", label="New Data?", height=1];
+        SaveCSV [label="Save assets/query.csv", shape=cylinder, fillcolor="#9b59b6", fontcolor="white"];
+        
+        AppInit -> ThreadData [style="dashed", label="spawns"];
+        ThreadData -> FetchData;
+        FetchData -> ReadCSV;
+        ReadCSV -> API_Call;
+        API_Call -> CheckNew;
+        CheckNew -> SaveCSV [label="Yes"];
+    }
+
+    // 3. Risk Engine
+    subgraph cluster_2 {
+        label="Risk Analysis Engine";
+        style=dashed;
+        color="#bdc3c7";
+        
+        OnRisk [label="User Click: Risk Hesapla", fillcolor="#3498db", fontcolor="white"];
+        GetCity [label="Get City Name", fillcolor="#3498db", fontcolor="white"];
+        RiskThread [label="Thread: prediction_task", fillcolor="#3498db", fontcolor="white"];
+        Predict [label="engine.predict_city_risk", fillcolor="#3498db", fontcolor="white"];
+        GeoPy [label="Geopy: Geocode City", shape=component, fillcolor="#e74c3c", fontcolor="white"];
+        PrepData [label="Prepare Data Frames", fillcolor="#3498db", fontcolor="white"];
+        TrainModel [label="Train CatBoost Model", fillcolor="#3498db", fontcolor="white"];
+        CalcRisk [label="Calculate Risk Scores\n(Short/Long/Fault)", fillcolor="#3498db", fontcolor="white"];
+        StoreRes [label="Store Result\n(last_city_data)", shape=note, fillcolor="#95a5a6", fontcolor="black"];
+        
+        UI_Wait -> OnRisk;
+        OnRisk -> GetCity;
+        GetCity -> RiskThread [style="dashed"];
+        RiskThread -> Predict;
+        Predict -> GeoPy;
+        GeoPy -> PrepData;
+        PrepData -> TrainModel;
+        TrainModel -> CalcRisk;
+        CalcRisk -> StoreRes;
+    }
+
+    // 4. Map Visualization
+    subgraph cluster_3 {
+        label="Visualization";
+        style=dashed;
+        color="#bdc3c7";
+
+        OnMap [label="User Click: Harita", fillcolor="#3498db", fontcolor="white"];
+        GenMap [label="map_visualizer.generate_map", fillcolor="#3498db", fontcolor="white"];
+        Folium [label="Create Folium Map", fillcolor="#3498db", fontcolor="white"];
+        AddLayers [label="Add Layers\n(Faults, GeoJSON, Heatmap)", fillcolor="#3498db", fontcolor="white"];
+        SaveHTML [label="Save risk_map.html", shape=cylinder, fillcolor="#9b59b6", fontcolor="white"];
+        Browser [label="Open Web Browser", shape=component, fillcolor="#e74c3c", fontcolor="white"];
+
+        UI_Wait -> OnMap;
+        OnMap -> GenMap;
+        GenMap -> Folium;
+        Folium -> AddLayers;
+        AddLayers -> SaveHTML;
+        SaveHTML -> Browser;
+        
+        StoreRes -> OnMap [style="dotted", label="provides data"];
+    }
+
+    // 5. Camera
+    subgraph cluster_4 {
+        label="Camera Detection";
+        style=dashed;
+        color="#bdc3c7";
+
+        OnCam [label="User Click: Kamera", fillcolor="#3498db", fontcolor="white"];
+        CamMain [label="camera_manager.main", fillcolor="#3498db", fontcolor="white"];
+        LoadYOLO [label="Load YOLO Models", shape=component, fillcolor="#e74c3c", fontcolor="white"];
+        CamLoop [label="Frame Loop\n(Detect & Draw)", fillcolor="#3498db", fontcolor="white"];
+
+        UI_Wait -> OnCam;
+        OnCam -> CamMain;
+        CamMain -> LoadYOLO;
+        LoadYOLO -> CamLoop;
+    }
+}

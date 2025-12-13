@@ -1,0 +1,82 @@
+digraph G {
+    // Ultra Compact Settings
+    rankdir=TB; // Top to Bottom flow
+    nodesep=0.15; // Minimal space between nodes side-by-side
+    ranksep=0.25; // Minimal space between levels
+    splines=ortho; // Rectangular lines for compactness
+    pack=true;
+    
+    // Global graph settings to reduce size
+    fontname="Arial Narrow";
+    fontsize=10;
+
+    // Node settings: Small, tight padding
+    node [shape=box, style="filled,rounded", fontname="Arial Narrow", fontsize=9, margin="0.05,0.02", height=0.3, width=0.8];
+    edge [fontname="Arial", fontsize=8, color="#555555", arrowsize=0.6];
+
+    // Define styles
+    start [shape=ellipse, fillcolor="#2ecc71", fontcolor="white", width=0.6];
+    decision [shape=diamond, fillcolor="#f1c40f", style="filled", height=0.4, width=0.4, fontsize=8, fixedsize=true];
+    process [fillcolor="#3498db", fontcolor="white"];
+    storage [shape=cylinder, fillcolor="#9b59b6", fontcolor="white", width=0.6, height=0.4, fontsize=8];
+    external [shape=component, fillcolor="#e74c3c", fontcolor="white", width=0.8];
+    action_btn [shape=box, style="filled,bold", fillcolor="#34495e", fontcolor="white", label="Click"];
+
+    // --- LEVEL 1: APP START ---
+    { rank=same; Start [shape=ellipse, fillcolor="#2ecc71", fontcolor="white", label="Start"]; }
+    AppInit [label="GUI Init", fillcolor="#3498db", fontcolor="white"];
+    Start -> AppInit;
+
+    // --- LEVEL 2: SPLIT POINT ---
+    // Invisible node to help branching
+    SplitPoint [shape=point, width=0];
+    AppInit -> SplitPoint [arrowhead=none];
+
+    // --- SUBMODULES (Side by Side) ---
+    
+    subgraph cluster_Main {
+        style=invis; // Invisible border to save space
+        
+        // Use a subgraph to force parallel alignment
+        { 
+            rank=same; 
+            ThreadUpdate [label="Bg: Update", fillcolor="#95a5a6", fontcolor="white"];
+            BtnRisk [label="Btn: Risk", fillcolor="#34495e", fontcolor="white", shape=eagon];
+            BtnMap [label="Btn: Map", fillcolor="#34495e", fontcolor="white", shape=eagon];
+            BtnCam [label="Btn: Camera", fillcolor="#34495e", fontcolor="white", shape=eagon];
+        }
+
+        // Connect Split Point to entries
+        SplitPoint -> ThreadUpdate [style="dashed"];
+        SplitPoint -> BtnRisk;
+        SplitPoint -> BtnMap;
+        SplitPoint -> BtnCam;
+
+        // --- COL 1: DATA ---
+        FetchData [label="Fetch API", fillcolor="#3498db", fontcolor="white"];
+        SaveCSV [label="Save CSV", shape=cylinder, fillcolor="#9b59b6", fontcolor="white"];
+        ThreadUpdate -> FetchData -> SaveCSV;
+
+        // --- COL 2: RISK ---
+        GeoEngine [label="Geocode", fillcolor="#3498db", fontcolor="white"];
+        TrainModel [label="CatBoost", shape=component, fillcolor="#e74c3c", fontcolor="white"];
+        RiskRes [label="Risk Score", shape=note, fillcolor="#f1c40f", fontsize=8, height=0.3];
+        
+        BtnRisk -> GeoEngine;
+        GeoEngine -> TrainModel -> RiskRes;
+        
+        // --- COL 3: MAP ---
+        GenMap [label="Gen Map", fillcolor="#3498db", fontcolor="white"];
+        MapHTML [label="HTML", shape=cylinder, fillcolor="#9b59b6", fontcolor="white"];
+        Browser [label="Browser", shape=component, fillcolor="#e74c3c", fontcolor="white"];
+        
+        BtnMap -> GenMap -> MapHTML -> Browser;
+        RiskRes -> BtnMap [style="dotted", constraint=false]; // Loose coupling
+
+        // --- COL 4: CAMERA ---
+        YOLO [label="Load YOLO", shape=component, fillcolor="#e74c3c", fontcolor="white"];
+        Detect [label="Detect Loop", fillcolor="#3498db", fontcolor="white"];
+        
+        BtnCam -> YOLO -> Detect;
+    }
+}
